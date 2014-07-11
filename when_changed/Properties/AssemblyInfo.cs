@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("when_changed")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Runs a command when a file changes")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("when_changed")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCopyright("Copyright ©  2014 Ben Blamey")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
