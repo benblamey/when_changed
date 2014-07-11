@@ -1,6 +1,3 @@
-when_changed
-============
-
 Runs a Command when a file changes (Windows only)
 
 usage:
@@ -9,7 +6,6 @@ when_changed (file path) (command) (optional-parameters)
 when_changed C:\somedir\foo.txt myapp.exe
 when_changed C:\somedir\*.txt myapp.exe
 when_changed C:\somedir\* myapp.exe
-when_changed fileincurrentdir.txt myapp.exe
 when_changed C:\somedir\foo.txt myapp.exe bar wibble 123
 
 Notes:
@@ -23,5 +19,3 @@ Notes:
 (Very quick/buggy implementation! 
 
 feedback to: blamey.ben (at) gmail.com
-
-See http://benblamey.com/code for binaries.
