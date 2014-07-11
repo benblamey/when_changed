@@ -1,0 +1,45 @@
+# C# / Visual Studio
+[Oo]bj
+[Bb]in
+*.user
+*.suo
+*.[Cc]ache
+*.bak
+*.ncb
+*.log
+_ReSharper.*
+*.resharper
+*.trx
+TestResults
+
+# C++ / Visual Studio
+Debug
+Release
+ipch
+*.sbr
+*.log
+*.sdf
+*.testsettings
+
+
+# java specific
+*.class
+build/
+dist/
+# don't ignore .externalToolBuilders - this creates issues with ant scripts.
+
+
+WebContent/WEB-INF/classes
+bin/
+
+
+# netbeans ignore personal stuff
+nbproject/private/
+
+# generic files to ignore
+*~
+*.lock
+*.DS_Store
+[Tt]humbs.db
+*.swp
+*.out
