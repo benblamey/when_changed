@@ -187,16 +187,18 @@ namespace when_changed
             var startinfo = new ProcessStartInfo();
             startinfo.FileName = m_command;
 
-
-            String allargs = "";
-            foreach (var arg in m_command_args)
+            if (m_command_args.Length > 0)
             {
-                allargs += arg + " ";
+                String allargs = "";
+                foreach (var arg in m_command_args)
+                {
+                    allargs += arg + " ";
+                }
+                // Trim the trailing space:
+                allargs.Substring(0, allargs.Length - 1);
+                Console.WriteLine(allargs);
+                startinfo.Arguments = allargs;
             }
-            // Trim the trailing space:
-            allargs.Substring(0, allargs.Length - 1);
-            Console.WriteLine(allargs);
-            startinfo.Arguments = allargs;
 
 
             // copy over working directory like asif being run from same console.
