@@ -95,7 +95,7 @@ namespace when_changed
 
 
             watcher.Filter = fileFilter;
-            watcher.IncludeSubdirectories = false;
+            watcher.IncludeSubdirectories = fileFilter.Contains("**");
             return watcher;
         }
 
