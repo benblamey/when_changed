@@ -14,7 +14,6 @@ namespace when_changed
     {
         private readonly string[] m_command_args;
         private readonly string m_command;
-        private readonly string m_changed_File = "";
         private readonly string m_target;
         private readonly Object m_state_lock = new Object();
 
@@ -201,52 +200,48 @@ namespace when_changed
 
         private void run(FileSystemEventArgs e)
         {
+            String allargs = "";
             
-
-            if (m_command_args.Length > 0)
+            foreach (var arg in m_command_args)
             {
-                String allargs = "";
-                foreach (var arg in m_command_args)
+                String toAppend;
+                if (String.Equals(arg, "$FullPath", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    String toAppend;
-                    if (String.Equals(arg, "$FullPath", StringComparison.InvariantCultureIgnoreCase))
+                    if (e == null && m_target.Contains("*"))
                     {
-                        if (e == null && m_target.Contains("*"))
-                        {
-                            Console.WriteLine("Cannot force run when using wildcards!");
-                            return;
-                        }
-                        toAppend = e.FullPath; // Fully qualified path of affected file or directory.
+                        Console.WriteLine("Cannot force run when using wildcards!");
+                        return;
                     }
-                    else if (String.Equals(arg, "$Name", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        if (e == null && m_target.Contains("*"))
-                        {
-                            Console.WriteLine("Cannot force run when using wildcards!");
-                            return;
-                        }
-                        toAppend = e.Name; // Name of affected file or directory.
-                    }
-                    else
-                    {
-                        toAppend = commandLineEscape(arg);
-                    }
-                    if (!String.IsNullOrEmpty(allargs))
-                    {
-                        allargs += " ";
-                    }
-                    allargs += toAppend;
+                    toAppend = e.FullPath; // Fully qualified path of affected file or directory.
                 }
-                allargs += m_changed_File;
-                // Trim the trailing space:
-                allargs.Substring(0, allargs.Length - 1);
-                Console.WriteLine("Running: " + m_command + ' ' + allargs);
+                else if (String.Equals(arg, "$Name", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (e == null && m_target.Contains("*"))
+                    {
+                        Console.WriteLine("Cannot force run when using wildcards!");
+                        return;
+                    }
+                    toAppend = e.Name; // Name of affected file or directory.
+                }
+                else
+                {
+                    toAppend = commandLineEscape(arg);
+                }
+                if (!String.IsNullOrEmpty(allargs))
+                {
+                    allargs += " ";
+                }
+                allargs += toAppend;
+            }
 
-                var startinfo = new ProcessStartInfo();
-                startinfo.FileName = m_command;
+            var startinfo = new ProcessStartInfo();
+            startinfo.FileName = m_command;
+            if (!String.IsNullOrWhiteSpace(allargs))
+            {
                 startinfo.Arguments = allargs;
             }
 
+            Console.WriteLine("Running: " + m_command + ' ' + allargs);
 
             // copy over working directory like asif being run from same console.
             startinfo.WorkingDirectory = Directory.GetCurrentDirectory();
@@ -255,13 +250,12 @@ namespace when_changed
             p.WaitForExit();
 
             Console.WriteLine("...cmd exited");
-
         }
 
         private string commandLineEscape(string arg)
         {
             arg.Replace("\"", "\\\""); // Slash-escape quotes.
-            if (arg.Contains(" "))
+            if (arg.Contains(" ")) // This doesn't support tabs, newlines, etc. -- should be a regex.
             {
                 arg = "\"" + arg + "\"";
             }
