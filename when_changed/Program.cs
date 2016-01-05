@@ -12,19 +12,21 @@ namespace when_changed
 {
     class Program
     {
-        private static string[] m_command_args;
-        private static string m_command;
+        private readonly string[] m_command_args;
+        private readonly string m_command;
+        private readonly string m_changed_File = "";
+        private readonly string m_target;
+        private readonly Object m_state_lock = new Object();
 
-        private static State m_state;
-        private static Object m_state_lock = new Object();
-
+        private State m_state;
 
         public static void Main()
         {
-            Run();
+            Program program = new Program();
+            program.run();
         }
 
-        public static void Run()
+        public Program()
         {
             string[] args = System.Environment.GetCommandLineArgs();
 
@@ -37,11 +39,16 @@ namespace when_changed
                 return;
             }
 
-            String thingToWatch = args[1];
-            FileSystemWatcher watcher = createWatcher(thingToWatch);
-
             m_command = args[2];
             m_command_args = args.Skip(3).ToArray();
+
+            m_target = args[1];            
+        }
+
+        public void run()
+        {
+
+            FileSystemWatcher watcher = createWatcher(m_target);
 
             // Add event handlers.
             watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -53,7 +60,7 @@ namespace when_changed
             watcher.EnableRaisingEvents = true;
 
             // Wait for the user to quit the program.
-            Console.WriteLine("when_changed now watching: " + watcher.Path +"\\"+ watcher.Filter);
+            Console.WriteLine("when_changed now watching: " + watcher.Path + "\\" + watcher.Filter);
 
             Console.WriteLine("Ctrl-C to quit.");
 
@@ -63,7 +70,7 @@ namespace when_changed
                 if (key.Key == ConsoleKey.F)
                 {
                     Console.WriteLine("Forcing run...");
-                    runCmd();
+                    runCmd(null);
                 }
             }
         }
@@ -101,21 +108,21 @@ namespace when_changed
 
 
         // Define the event handlers. 
-        private static void OnChanged(object source, FileSystemEventArgs e)
+        private void OnChanged(object source, FileSystemEventArgs e)
         {
             // Specify what is done when a file is changed, created, or deleted.
             Console.WriteLine(DateTime.Now.ToShortTimeString() + " File: " + e.FullPath + " " + e.ChangeType);
-            runCmd();
+            runCmd(e);
         }
 
-        private static void OnRenamed(object source, RenamedEventArgs e)
+        private void OnRenamed(object source, RenamedEventArgs e)
         {
             // Specify what is done when a file is renamed.
             Console.WriteLine(DateTime.Now.ToShortTimeString() + "File: {0} renamed to {1}.", e.OldFullPath, e.FullPath);
-            runCmd();
+            runCmd(e);
         }
 
-        private static void runCmd()
+        private void runCmd(FileSystemEventArgs e)
         {
             // When a file is updated, we often get a flurry of updates in a single second.
             lock (m_state_lock) {
@@ -134,7 +141,8 @@ namespace when_changed
                     case State.Watching:
                         // Start a new thread to delay and run the command, meanwhile subsequent nots. ignored.
                         m_state = State.WaitingToExecute;
-                        new Thread(threadRun).Start();
+                        Thread t = new Thread(threadRun);
+                        t.Start(e);
                         break;
                     default:
                         throw new InvalidProgramException("argh! enum values?!");
@@ -143,12 +151,25 @@ namespace when_changed
 
         }
 
-        private static void threadRun()
+        private void threadRun(Object eObject)
         {
+            FileSystemEventArgs e = (FileSystemEventArgs)eObject;
             Boolean again = true;
             while (again)
             {
-                waitThenRun();
+                Console.WriteLine("Running the command any second now...");
+
+                // Wait for things to calm down.
+                Thread.Sleep(1500);
+
+                // Start the execution.
+                lock (m_state_lock)
+                {
+                    Debug.Assert(m_state == State.WaitingToExecute);
+                    m_state = State.Executing;
+                }
+
+                run(e);
 
                 // When a file is updated, we often get a flurry of updates in a single second.
                 lock (m_state_lock)
@@ -176,14 +197,8 @@ namespace when_changed
             }
         }
 
-        private static void waitThenRun()
+        private void run(FileSystemEventArgs e)
         {
-            Console.WriteLine("Running the command any second now...");
-
-
-            // Wait for things to calm down.
-            Thread.Sleep(1500);
-
             var startinfo = new ProcessStartInfo();
             startinfo.FileName = m_command;
 
@@ -192,11 +207,39 @@ namespace when_changed
                 String allargs = "";
                 foreach (var arg in m_command_args)
                 {
-                    allargs += arg + " ";
+                    String toAppend;
+                    if (String.Equals(arg, "$FullPath", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        if (e == null && m_target.Contains("*"))
+                        {
+                            Console.WriteLine("Cannot force run when using wildcards!");
+                            return;
+                        }
+                        toAppend = e.FullPath; // Fully qualified path of affected file or directory.
+                    }
+                    else if (String.Equals(arg, "$Name", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        if (e == null && m_target.Contains("*"))
+                        {
+                            Console.WriteLine("Cannot force run when using wildcards!");
+                            return;
+                        }
+                        toAppend = e.Name; // Name of affected file or directory.
+                    }
+                    else
+                    {
+                        toAppend = commandLineEscape(arg);
+                    }
+                    if (!String.IsNullOrEmpty(allargs))
+                    {
+                        allargs += " ";
+                    }
+                    allargs += toAppend;
                 }
+                allargs += m_changed_File;
                 // Trim the trailing space:
                 allargs.Substring(0, allargs.Length - 1);
-                Console.WriteLine(allargs);
+                Console.WriteLine("Running: " + m_command + ' ' + allargs);
                 startinfo.Arguments = allargs;
             }
 
@@ -205,23 +248,22 @@ namespace when_changed
             startinfo.WorkingDirectory = Directory.GetCurrentDirectory();
 
 
-            // Start the execution.
-            lock (m_state_lock)
-            {
-                Debug.Assert(m_state == State.WaitingToExecute);
-                m_state = State.Executing;
-            }
 
             var p = Process.Start(startinfo);
             p.WaitForExit();
 
             Console.WriteLine("...cmd exited");
 
-            // Wait here for windows lag???
-
         }
 
-
-
+        private string commandLineEscape(string arg)
+        {
+            arg.Replace("\"", "\\\""); // Slash-escape quotes.
+            if (arg.Contains(" "))
+            {
+                arg = "\"" + arg + "\"";
+            }
+            return arg;
+        }
     }
 }
