@@ -172,16 +172,18 @@ namespace when_changed
                 run(e);
 
                 // When a file is updated, we often get a flurry of updates in a single second.
+                // Lets check the state again.
                 lock (m_state_lock)
                 {
                     switch (m_state)
                     {
                         case State.Executing:
-                            // no subsequent changes - output ok (ish)
+                            // no subsequent changes - the output is up to date with the input.
                             m_state = State.Watching;
                             again = false;
                             break;
                         case State.ExecutingDirty:
+                            // Changes were made while the external program was running.
                             // Clean the dirty flag, and repeat.
                             m_state = State.WaitingToExecute;
                             again = true;
@@ -199,8 +201,7 @@ namespace when_changed
 
         private void run(FileSystemEventArgs e)
         {
-            var startinfo = new ProcessStartInfo();
-            startinfo.FileName = m_command;
+            
 
             if (m_command_args.Length > 0)
             {
@@ -240,14 +241,15 @@ namespace when_changed
                 // Trim the trailing space:
                 allargs.Substring(0, allargs.Length - 1);
                 Console.WriteLine("Running: " + m_command + ' ' + allargs);
+
+                var startinfo = new ProcessStartInfo();
+                startinfo.FileName = m_command;
                 startinfo.Arguments = allargs;
             }
 
 
             // copy over working directory like asif being run from same console.
             startinfo.WorkingDirectory = Directory.GetCurrentDirectory();
-
-
 
             var p = Process.Start(startinfo);
             p.WaitForExit();
