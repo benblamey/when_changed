@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -63,7 +63,7 @@ namespace when_changed
                 if (key.Key == ConsoleKey.F)
                 {
                     Console.WriteLine("Forcing run...");
-                    runCmd();
+                    runCmd("");
                 }
             }
         }
@@ -105,17 +105,17 @@ namespace when_changed
         {
             // Specify what is done when a file is changed, created, or deleted.
             Console.WriteLine(DateTime.Now.ToShortTimeString() + " File: " + e.FullPath + " " + e.ChangeType);
-            runCmd();
+            runCmd(e.FullPath);
         }
 
         private static void OnRenamed(object source, RenamedEventArgs e)
         {
             // Specify what is done when a file is renamed.
             Console.WriteLine(DateTime.Now.ToShortTimeString() + "File: {0} renamed to {1}.", e.OldFullPath, e.FullPath);
-            runCmd();
+            runCmd(e.FullPath);
         }
 
-        private static void runCmd()
+        private static void runCmd(string changed_file)
         {
             // When a file is updated, we often get a flurry of updates in a single second.
             lock (m_state_lock) {
@@ -134,7 +134,8 @@ namespace when_changed
                     case State.Watching:
                         // Start a new thread to delay and run the command, meanwhile subsequent nots. ignored.
                         m_state = State.WaitingToExecute;
-                        new Thread(threadRun).Start();
+                        Thread t = new Thread(new ParameterizedThreadStart(threadRun));
+                        t.Start(changed_file);
                         break;
                     default:
                         throw new InvalidProgramException("argh! enum values?!");
@@ -143,12 +144,13 @@ namespace when_changed
 
         }
 
-        private static void threadRun()
+        private static void threadRun(object changed_file)
         {
+            string changedfile = (string)changed_file;
             Boolean again = true;
             while (again)
             {
-                waitThenRun();
+                waitThenRun(changedfile);
 
                 // When a file is updated, we often get a flurry of updates in a single second.
                 lock (m_state_lock)
@@ -176,7 +178,7 @@ namespace when_changed
             }
         }
 
-        private static void waitThenRun()
+        private static void waitThenRun(string filechanged)
         {
             Console.WriteLine("Running the command any second now...");
 
@@ -193,7 +195,10 @@ namespace when_changed
                 String allargs = "";
                 foreach (var arg in m_command_args)
                 {
-                    allargs += arg + " ";
+                    if (arg == "%file%")
+                        allargs += filechanged + " ";
+                    else
+                        allargs += arg + " ";
                 }
                 // Trim the trailing space:
                 allargs.Substring(0, allargs.Length - 1);
