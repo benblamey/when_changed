@@ -13,6 +13,7 @@ when_changed C:\somedir\* myapp.exe
 when_changed C:\somedir\** myapp.exe (recursive)
 when_changed fileincurrentdir.txt myapp.exe
 when_changed C:\somedir\foo.txt myapp.exe bar wibble 123
+when_changed C:\somedir\*.txt myapp.exe %file% 
 
 Notes:
 - Press 'F' to force the command to run.
@@ -21,7 +22,7 @@ Notes:
 - Beware of creating an infinite loop!
 - (file path) must be a file path with wildcards -- not a directory.
 - The search is recursive if the filename contains a double-asterisk ** (wildcards in directory names not supported.)
-
+- Include a %file% parameter to pass the full path of the changed file to the target application. (thanks to borconi)
 
 feedback to: blamey.ben (at) gmail.com
 
