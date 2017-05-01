@@ -22,7 +22,7 @@ Notes:
 - Beware of creating an infinite loop!
 - (file path) must be a file path with wildcards -- not a directory.
 - The search is recursive if the filename contains a double-asterisk ** (wildcards in directory names not supported.)
-- Include a %file% parameter to pass the full path of the changed file to the target application. (thanks to borconi)
+- Include a %file% parameter to pass the full path of the changed file to the target application. **Note this parameter omitted when 'force running' the target application**. (thanks to borconi)
 
 feedback to: blamey.ben (at) gmail.com
 
