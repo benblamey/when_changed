@@ -18,6 +18,7 @@ namespace when_changed
         private static State m_state;
         private static Object m_state_lock = new Object();
 
+        private static bool b_allow_dirty = false;
 
         public static void Main()
         {
@@ -36,6 +37,8 @@ namespace when_changed
                 Console.WriteLine("Usage: when_changed (file path) (command) (optional-parameters)");
                 return;
             }
+
+            b_allow_dirty = args.Contains("--dirty");
 
             String thingToWatch = args[1];
             FileSystemWatcher watcher = createWatcher(thingToWatch);
@@ -123,8 +126,11 @@ namespace when_changed
                 {
                     case State.Executing:
                         // Oh noeeees - it changed while we were executing. do it again straight after.
-                        Console.WriteLine(" -- output will be dirty - will run again soon...");
-                        m_state = State.ExecutingDirty;
+                        if (!b_allow_dirty)
+                        {
+                            Console.WriteLine(" -- output will be dirty - will run again soon...");
+                            m_state = State.ExecutingDirty;
+                        }
                         break;
                     case State.ExecutingDirty:
                         // Leave the flag dirty.
