@@ -194,7 +194,7 @@ namespace when_changed
 
             var startinfo = new ProcessStartInfo();
             startinfo.FileName = m_command;
-            startinfo.WindowStyle = ProcessWindowStyle.Minimized;
+            startinfo.WindowStyle = ProcessWindowStyle.Hidden;
 
             if (m_command_args.Length > 0)
             {
